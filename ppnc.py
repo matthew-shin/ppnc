@@ -41,6 +41,8 @@ def get_opts():
     parser.add_argument('-c', '--cellfile', type=str, default=None, help='Grid Cell Area or Volume File')
     parser.add_argument('-m', '--dirmode', type=int, default=0o755, help='Octal mode for creating directories')
     parser.add_argument('-i', '--freq', type=str, nargs=1, default='mon', choices=['yr', 'mon', 'day', 'subhr', 'fx'], help='Frequency')
+    parser.add_argument('--interpolate', dest='interpolate', action='store_true', default=True, help='Interpolate to pressure levels')
+    parser.add_argument('--no-interpolate', dest='interpolate', action='store_false', help="Don't Interpolate to pressure levels")
     return parser.parse_args()
 
 
@@ -53,8 +55,10 @@ def get_pressure_stash(pgrid):
 
 def loadPP(args, reqd):
     """Loads a pp file with a callback"""
-    if args.stash:
+    if args.stash and args.interpolate == True:
         constr = [iris.AttributeConstraint(STASH=args.stash[0]), iris.AttributeConstraint(STASH=get_pressure_stash(args.pgrid))]
+    elif args.stash and args.interpolate == False:
+        constr = [iris.AttributeConstraint(STASH=args.stash[0])]
     else:
         constr = None
     cubes = iris.load(args.files, constraints=constr, callback=reqd.callback)
@@ -92,13 +96,13 @@ def saveiris(args, cube, variable_name):
 def main(args):
 
     # An object containing the things that are requested and methods to do things with them.
-    reqd = req(STASH=args.stash[0])
+    reqd = req(STASH=args.stash[0], args=args)
 
     # Load pp files, constrain by stash
     cubes = loadPP(args, reqd)
 
     #    convert stashes to those requested
-    mapfunction = partial(reqd.convert, args=args)
+    mapfunction = partial(reqd.convert)
     cubes = map(mapfunction, cubes)
 
     # Convert to pressure levels

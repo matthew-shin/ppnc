@@ -59,6 +59,7 @@ An example invocation of ppnc is as follows:
 An example invocation of ppnc_cella is as follows:
 
     python ppnc_cella.py -j $JID # Model JobID \
+                         --interpolate \
                          -a /path/to/model/orography # often called qrparm.orog \
                          -l /path/to/model/land-fraction_file # often called qrparm.fracmask \
                          -p /path/to/output/files \ 

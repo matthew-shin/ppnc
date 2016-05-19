@@ -25,7 +25,7 @@ from config.req_data import req_data
 
 
 class req():
-    def __init__(self, STASH):
+    def __init__(self, STASH, args):
         self.STASH = STASH
         self.reqStdName = req_data[self.STASH]['req_standard_name']
         self.reqLongName = req_data[self.STASH]['req_long_name']
@@ -34,6 +34,7 @@ class req():
         self.units = req_data[self.STASH]['units']
         self.is3D = True
         self.regridded = False
+        self.args = args
 
         # Pull in a comment from req_data if set
         if 'comment' in req_data[self.STASH]:
@@ -58,7 +59,7 @@ class req():
                     cube.long_name = self.reqStdName
             cube.units = req_data[self.STASH]['units']
 
-    def convert(self, cube, args):
+    def convert(self, cube):
         if cube.attributes['STASH'] == self.STASH:
             # make it 64-bit
             cube.data = cube.data.astype(dtype='float64')
@@ -67,8 +68,8 @@ class req():
                 if cube.units.is_dimensionless() or cube.units.is_time():
                     cube.data = (cube.data / self.cnvfact)
                 elif 'm-3' in cube.units.definition:
-                    if args.cellfile is not None:
-                        cellvolume = iris.load(args.cellfile)
+                    if self.args.cellfile is not None:
+                        cellvolume = iris.load(self.args.cellfile)
                         cube.data = numpy.divide(cube.data, cellvolume[0].data)
                     else:
                         raise ValueError("Need to specify Grid Cell Volume File")
@@ -101,7 +102,7 @@ class req():
 
     def convert_pressure(self, stashcube, cubes):
 
-        if self.is3D:
+        if (self.is3D and self.args.interpolate == True):
             import pressureconv
             """Takes two cubes, vv and air_pressure, converts to pressure levels"""
 
@@ -145,12 +146,16 @@ class req():
         cube.cell_methods = [iris.coords.CellMethod('mean', 'time')]
 
         # Make the coords
-        if self.is3D:
+        if self.is3D and self.args.interpolate == True:
             newcoords = iris.coords.DimCoord(tweakables.plevels,
                                              standard_name='air_pressure',
                                              var_name='plev',
                                              attributes={'positive': 'down'},
                                              units=iris.unit.Unit('Pa'))
+        elif self.is3D and self.args.interpolate == False:
+            # TODO is this always going to be model_level_number?
+            newcoords = orig_cube.coords('model_level_number')[0]
+
         latcoords = coords_to_float64(orig_cube.coords('latitude')[0])
         longcorrds = coords_to_float64(orig_cube.coords('longitude')[0])
 
