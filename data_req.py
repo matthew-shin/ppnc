@@ -165,9 +165,7 @@ class req():
         latcoords.var_name = 'lat'
         longcorrds.var_name = 'lon'
 
-        new_time_unit = cf_units.Unit('days since 1960-01-01', calendar='360_day')
-
-        orig_cube.coords('time')[0].convert_units(new_time_unit)
+        orig_cube.coords('time')[0].convert_units('days since 1960-01-01')
         cube.add_dim_coord(orig_cube.coords('time')[0], 0)
         cube.coords('time')[0].var_name = 'time'
 
